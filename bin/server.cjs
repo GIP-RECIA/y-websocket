@@ -10,24 +10,30 @@ const stats = require('./stats.cjs')
 const host = process.env.HOST || 'localhost'
 const port = number.parseInt(process.env.PORT || '1234')
 
+stats.gauge('memoryUsage', () => process.memoryUsage().rss)
+stats.gauge('memoryUsageHeap', () => process.memoryUsage().heapUsed)
+stats.gauge('totalUsers', () => {
+  let conns = 0
+  docs.forEach(doc => { conns += doc.conns.size })
+
+  return conns
+})
+stats.gauge('totalRooms', () => docs.size)
+stats.meter('connects')
+stats.meter('disconnects')
+
 const server = http.createServer((_request, response) => {
-  const stopWatch = stats.timer('httpRequests').start();
-  stats.gauge('memoryUsage', () => process.memoryUsage().rss);
-  stats.gauge('memoryUsageHeap', () => process.memoryUsage().heapUsed);
-  stats.gauge('totalUsers', () => {
-    let conns = 0
-    docs.forEach(doc => { conns += doc.conns.size })
+  const stopWatch = stats.timer('httpRequests').start()
 
-    return conns
-  });
-  stats.gauge('totalRooms', () => docs.size);
-  stats.meter('connects')
-  stats.meter('disconnects')
-
-  if (_request.url === '/health-check') {
+  if (_request.url === '/monitor') {
     stopWatch.end()
     response.writeHead(200, { 'Content-Type': 'application/json' })
     response.end(JSON.stringify(stats.toJSON()))
+  }
+
+  if (_request.url === '/health-check') {
+    response.writeHead(200, { 'Content-Type': 'application/json' })
+    response.end()
   }
 })
 
