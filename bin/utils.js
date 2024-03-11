@@ -1,3 +1,5 @@
+const stats = require('./stats.js')
+
 const Y = require('yjs')
 const syncProtocol = require('y-protocols/dist/sync.cjs')
 const awarenessProtocol = require('y-protocols/dist/awareness.cjs')
@@ -235,6 +237,7 @@ const pingTimeout = 30000
  * @param {any} opts
  */
 exports.setupWSConnection = (conn, req, { docName = req.url.slice(1).split('?')[0], gc = true } = {}) => {
+  stats.meter('connects').mark();
   conn.binaryType = 'arraybuffer'
   // get doc, initialize if it does not exist yet
   const doc = getYDoc(docName, gc)
@@ -261,6 +264,7 @@ exports.setupWSConnection = (conn, req, { docName = req.url.slice(1).split('?')[
     }
   }, pingTimeout)
   conn.on('close', () => {
+    stats.meter('disconnects').mark();
     closeConn(doc, conn)
     clearInterval(pingInterval)
   })
