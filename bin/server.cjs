@@ -4,14 +4,31 @@ const WebSocket = require('ws')
 const http = require('http')
 const number = require('lib0/number')
 const wss = new WebSocket.Server({ noServer: true })
-const setupWSConnection = require('./utils.cjs').setupWSConnection
+const { docs, setupWSConnection } = require('./utils.cjs')
+const stats = require('./stats.cjs')
 
 const host = process.env.HOST || 'localhost'
 const port = number.parseInt(process.env.PORT || '1234')
 
 const server = http.createServer((_request, response) => {
-  response.writeHead(200, { 'Content-Type': 'text/plain' })
-  response.end('okay')
+  const stopWatch = stats.timer('httpRequests').start();
+  stats.gauge('memoryUsage', () => process.memoryUsage().rss);
+  stats.gauge('memoryUsageHeap', () => process.memoryUsage().heapUsed);
+  stats.gauge('totalUsers', () => {
+    let conns = 0
+    docs.forEach(doc => { conns += doc.conns.size })
+
+    return conns
+  });
+  stats.gauge('totalRooms', () => docs.size);
+  stats.meter('connects')
+  stats.meter('disconnects')
+
+  if (_request.url === '/health-check') {
+    stopWatch.end()
+    response.writeHead(200, { 'Content-Type': 'application/json' })
+    response.end(JSON.stringify(stats.toJSON()))
+  }
 })
 
 wss.on('connection', setupWSConnection)
