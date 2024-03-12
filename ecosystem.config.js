@@ -2,6 +2,7 @@ module.exports = {
   apps : [{
     name: "y-websocket",
     script: "./bin/server.js",
+    interpreter: "node@20.11.1",
     env: {
       HOST: "0.0.0.0",
       PORT: 1234,
