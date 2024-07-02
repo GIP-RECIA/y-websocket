@@ -1,6 +1,9 @@
 const measured = require('./measured.cjs')
-const prom = require('./prom.cjs')
 const { connects, disconnects } = require('./prom.cjs')
+
+const { pub, sub, getDocUpdatesFromQueue, pushDocUpdatesToQueue } = require('./redis.cjs')
+const WebSocket = require('ws');
+const isRedisEnabled = !!process.env.REDIS;
 
 const Y = require('yjs')
 const syncProtocol = require('y-protocols/sync')
@@ -77,16 +80,32 @@ const messageAwareness = 1
 
 /**
  * @param {Uint8Array} update
- * @param {any} _origin
  * @param {WSSharedDoc} doc
- * @param {any} _tr
  */
-const updateHandler = (update, _origin, doc, _tr) => {
+const propagateUpdate = (update, doc) => {
   const encoder = encoding.createEncoder()
   encoding.writeVarUint(encoder, messageSync)
   syncProtocol.writeUpdate(encoder, update)
   const message = encoding.toUint8Array(encoder)
   doc.conns.forEach((_, conn) => send(doc, conn, message))
+}
+
+/**
+ * @param {Uint8Array} update
+ * @param {any} _origin
+ * @param {WSSharedDoc} doc
+ * @param {any} _tr
+ */
+const updateHandler = (update, _origin, doc, _tr) => {
+  const isOriginWSConn = _origin instanceof WebSocket && doc.conns.has(_origin);
+  if (isRedisEnabled && isOriginWSConn) {
+    Promise.all([
+      pub.publishBuffer(doc.name, Buffer.from(update)),
+      pushDocUpdatesToQueue(doc, update)
+    ]); // do not await
+
+    propagateUpdate(update, doc);
+  } else propagateUpdate(update, doc);
 }
 
 /**
@@ -111,6 +130,7 @@ class WSSharedDoc extends Y.Doc {
   constructor (name) {
     super({ gc: gcEnabled })
     this.name = name
+    this.awarenessChannel = `${name}-awareness`
     /**
      * Maps from conn to set of controlled user ids. Delete all user ids from awareness when this conn is closed
      * @type {Map<Object, Set<number>>}
@@ -145,6 +165,22 @@ class WSSharedDoc extends Y.Doc {
     }
     this.awareness.on('update', awarenessChangeHandler)
     this.on('update', /** @type {any} */ (updateHandler))
+
+    if (isRedisEnabled) {
+      sub.subscribe([this.name, this.awarenessChannel]).then(() => {
+        sub.on('messageBuffer', (channel, update) => {
+          const channelId = channel.toString();
+          // update is a Buffer, Buffer is a subclass of Uint8Array, update can be applied
+          // as an update directly
+          if (channelId === this.name) {
+            Y.applyUpdate(this, update, sub);
+          } else if (channelId === this.awarenessChannel) {
+            awarenessProtocol.applyAwarenessUpdate(this.awareness, update, sub);
+          }
+        })
+      })
+    }
+
     if (isCallbackSet) {
       this.on('update', /** @type {any} */ (debounce(
         callbackHandler,
@@ -153,6 +189,11 @@ class WSSharedDoc extends Y.Doc {
       )))
     }
     this.whenInitialized = contentInitializor(this)
+  }
+
+  destroy() {
+    super.destroy();
+    if (isRedisEnabled) sub.unsubscribe([this.name, this.awarenessChannel]);
   }
 }
 
@@ -200,7 +241,9 @@ const messageListener = (conn, doc, message) => {
         }
         break
       case messageAwareness: {
-        awarenessProtocol.applyAwarenessUpdate(doc.awareness, decoding.readVarUint8Array(decoder), conn)
+        const update = decoding.readVarUint8Array(decoder);
+        if (isRedisEnabled) pub.publishBuffer(doc.awarenessChannel, Buffer.from(update));
+        awarenessProtocol.applyAwarenessUpdate(doc.awareness, update, conn)
         break
       }
     }
@@ -258,15 +301,29 @@ const pingTimeout = 30000
  * @param {import('http').IncomingMessage} req
  * @param {any} opts
  */
-exports.setupWSConnection = (conn, req, { docName = (req.url || '').slice(1).split('?')[0], gc = true } = {}) => {
+exports.setupWSConnection = async (conn, req, { docName = (req.url || '').slice(1).split('?')[0], gc = true } = {}) => {
   measured.meter('connects').mark();
   connects.inc()
+
   conn.binaryType = 'arraybuffer'
+  const isNew = !docs.get(docName)
   // get doc, initialize if it does not exist yet
   const doc = getYDoc(docName, gc)
   doc.conns.set(conn, new Set())
   // listen and reply to events
   conn.on('message', /** @param {ArrayBuffer} message */ message => messageListener(conn, doc, new Uint8Array(message)))
+
+  if (isRedisEnabled && isNew) {
+    const redisUpdates = await getDocUpdatesFromQueue(doc);
+    const redisYDoc = new Y.Doc();
+    redisYDoc.transact(() => {
+      for (const u of redisUpdates) {
+        Y.applyUpdate(redisYDoc, u);
+      }
+    });
+  
+    Y.applyUpdate(doc, Y.encodeStateAsUpdate(redisYDoc));
+  }
 
   // Check if connection is still alive
   let pongReceived = true

@@ -6,6 +6,12 @@ module.exports = {
     env: {
       HOST: "0.0.0.0",
       PORT: 1234,
+      REDIS: false,
+      REDIS_HOST: '',
+      REDIS_PORT: 6379,
+      REDIS_PREFIX: '',
+      REDIS_PATH: '',
+      REDIS_PASSWORD: undefined
     },
     cron_restart: "0 0 * * *",
   }]

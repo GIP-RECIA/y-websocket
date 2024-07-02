@@ -5,6 +5,7 @@ const http = require('http')
 const number = require('lib0/number')
 const wss = new WebSocket.Server({ noServer: true })
 const setupWSConnection = require('./utils.cjs').setupWSConnection
+
 const measured = require('./measured.cjs')
 require('./stats.cjs')
 
