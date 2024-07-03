@@ -40,5 +40,5 @@ server.on('upgrade', (request, socket, head) => {
 })
 
 server.listen(port, host, () => {
-  console.log(`running at '${host}' on port ${port}`)
+  console.log(`Server is running at ${host}:${port}`)
 })
