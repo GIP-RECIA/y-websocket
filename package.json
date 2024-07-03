@@ -7,7 +7,7 @@
     "ioredis": "^5.4.1",
     "lib0": "^0.2.94",
     "lodash.debounce": "^4.0.8",
-    "measured": "^1.1.0",
+    "measured-core": "^2.0.0",
     "pm2-prom-module-client": "^1.0.3",
     "ws": "^8.17.1",
     "y-protocols": "^1.0.6",

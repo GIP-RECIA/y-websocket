@@ -1,4 +1,4 @@
-const measured = require('measured')
+const measured = require('measured-core')
 
 module.exports = measured.createCollection();
 
