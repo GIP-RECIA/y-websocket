@@ -9,7 +9,7 @@
     "lodash.debounce": "^4.0.8",
     "measured-core": "^2.0.0",
     "pm2-prom-module-client": "^1.0.3",
-    "ws": "^8.17.1",
+    "ws": "^8.18.0",
     "y-protocols": "^1.0.6",
     "yjs": "^13.6.18"
   },
