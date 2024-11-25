@@ -15,7 +15,7 @@
   },
   "devDependencies": {
     "@types/lodash.debounce": "^4.0.9",
-    "@types/node": "^22.9.0",
+    "@types/node": "^22.9.3",
     "@types/ws": "^8.5.13"
   }
 }
