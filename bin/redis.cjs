@@ -1,7 +1,7 @@
 const number = require('lib0/number')
 const Redis = require('ioredis');
 
-const isRedisEnabled = !!process.env.REDIS;
+const isRedisEnabled = process.env.REDIS === 'true';
 
 if (isRedisEnabled) {
   const config = {
