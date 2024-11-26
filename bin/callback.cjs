@@ -72,6 +72,6 @@ const getContent = (objName, objType, doc) => {
     case 'Text': return doc.getText(objName)
     case 'XmlFragment': return doc.getXmlFragment(objName)
     case 'XmlElement': return doc.getXmlElement(objName)
-    default : return {}
+    default: return {}
   }
 }

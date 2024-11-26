@@ -37,7 +37,7 @@ const docs = require('./utils.cjs').docs
 const connectedUsers = () => {
   let conns = 0
   docs.forEach(doc => { conns += doc.conns.size })
-  
+
   return conns
 }
 

@@ -49,7 +49,7 @@ if (typeof persistenceDir === 'string') {
         ldb.storeUpdate(docName, update)
       })
     },
-    writeState: async (_docName, _ydoc) => {}
+    writeState: async (_docName, _ydoc) => { }
   }
 }
 
@@ -127,7 +127,7 @@ class WSSharedDoc extends Y.Doc {
   /**
    * @param {string} name
    */
-  constructor (name) {
+  constructor(name) {
     super({ gc: gcEnabled })
     this.name = name
     this.awarenessChannel = `${name}-awareness`
@@ -164,7 +164,7 @@ class WSSharedDoc extends Y.Doc {
       })
     }
     this.awareness.on('update', awarenessChangeHandler)
-    this.on('update', /** @type {any} */ (updateHandler))
+    this.on('update', /** @type {any} */(updateHandler))
 
     if (isRedisEnabled) {
       sub.subscribe([this.name, this.awarenessChannel]).then(() => {
@@ -182,7 +182,7 @@ class WSSharedDoc extends Y.Doc {
     }
 
     if (isCallbackSet) {
-      this.on('update', /** @type {any} */ (debounce(
+      this.on('update', /** @type {any} */(debounce(
         callbackHandler,
         CALLBACK_DEBOUNCE_WAIT,
         { maxWait: CALLBACK_DEBOUNCE_MAXWAIT }
@@ -321,7 +321,7 @@ exports.setupWSConnection = async (conn, req, { docName = (req.url || '').slice(
         Y.applyUpdate(redisYDoc, u);
       }
     });
-  
+
     Y.applyUpdate(doc, Y.encodeStateAsUpdate(redisYDoc));
   }
 
