@@ -11,12 +11,8 @@ if (isRedisEnabled) {
     path: process.env.REDIS_PATH,
     ...((() => {
       const password = process.env.REDIS_PASSWORD
-  
-      if (password && password.length > 0) {
-        return { password }
-      }
-  
-      return {}
+      
+      return password && password.length > 0 ? { password } : {};
     })())
   }
 
