@@ -1,9 +1,8 @@
 const measured = require('./measured.cjs')
 const { connects, disconnects } = require('./prom.cjs')
 
-const { pub, sub, getDocUpdatesFromQueue, pushDocUpdatesToQueue } = require('./redis.cjs')
+const { isRedisEnabled, pub, sub, getDocUpdatesFromQueue, pushDocUpdatesToQueue } = require('./redis.cjs')
 const WebSocket = require('ws');
-const isRedisEnabled = !!process.env.REDIS;
 
 const Y = require('yjs')
 const syncProtocol = require('y-protocols/sync')
