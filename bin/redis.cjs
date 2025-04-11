@@ -19,16 +19,13 @@ if (isRedisEnabled) {
 
   console.log(`Redis has been enabled with config ${config.host}:${config.port}`);
 
-  // @ts-ignore
   const redis = new Redis(config);
   module.exports = redis;
 
   module.exports.isRedisEnabled = isRedisEnabled;
 
-  // @ts-ignore
   module.exports.pub = new Redis(config);
 
-  // @ts-ignore
   module.exports.sub = new Redis(config);
 
   const getDocUpdatesKey = (doc) => `doc:${doc.name}:updates`;

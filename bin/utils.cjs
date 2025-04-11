@@ -34,7 +34,6 @@ const persistenceDir = process.env.YPERSISTENCE
 let persistence = null
 if (typeof persistenceDir === 'string') {
   console.info('Persisting documents to "' + persistenceDir + '"')
-  // @ts-ignore
   const LeveldbPersistence = require('y-leveldb').LeveldbPersistence
   const ldb = new LeveldbPersistence(persistenceDir)
   persistence = {
@@ -248,7 +247,6 @@ const messageListener = (conn, doc, message) => {
     }
   } catch (err) {
     console.error(err)
-    // @ts-ignore
     doc.emit('error', [err])
   }
 }
@@ -262,7 +260,6 @@ const closeConn = (doc, conn) => {
     /**
      * @type {Set<number>}
      */
-    // @ts-ignore
     const controlledIds = doc.conns.get(conn)
     doc.conns.delete(conn)
     awarenessProtocol.removeAwarenessStates(doc.awareness, Array.from(controlledIds), null)
