@@ -18,7 +18,6 @@ module.exports = {
       REDIS_TTL: 30
     },
     combine_logs: true,
-    merge_logs: true,
     time: true,
     cron_restart: '0 0 * * *',
   }]
