@@ -14,7 +14,8 @@ module.exports = {
       REDIS_PORT: 6379,
       REDIS_PREFIX: 'YWS_',
       REDIS_PATH: '',
-      REDIS_PASSWORD: undefined
+      REDIS_PASSWORD: undefined,
+      REDIS_TTL: 30
     },
     combine_logs: true,
     merge_logs: true,

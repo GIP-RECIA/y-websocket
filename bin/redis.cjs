@@ -12,9 +12,10 @@ if (isRedisEnabled) {
     ...((() => {
       const password = process.env.REDIS_PASSWORD
 
-      return password && password.length > 0 ? { password } : {};
+      return password && password.length > 0 ? { password } : {}
     })())
   }
+  const ttl = process.env.REDIS_TTL || 300
 
   console.log(`Redis has been enabled with config ${config.host}:${config.port}`);
 
@@ -43,12 +44,12 @@ if (isRedisEnabled) {
       redis.pipeline()
         .lpopBuffer(getDocUpdatesKey(doc))
         .rpushBuffer(getDocUpdatesKey(doc), Buffer.from(update))
-        .expire(getDocUpdatesKey(doc), 300)
+        .expire(getDocUpdatesKey(doc), ttl)
         .exec()
     } else {
       redis.pipeline()
         .rpushBuffer(getDocUpdatesKey(doc), Buffer.from(update))
-        .expire(getDocUpdatesKey(doc), 300)
+        .expire(getDocUpdatesKey(doc), ttl)
         .exec();
     }
   }
