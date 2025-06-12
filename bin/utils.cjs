@@ -25,6 +25,9 @@ const wsReadyStateOpen = 1
 const wsReadyStateClosing = 2 // eslint-disable-line
 const wsReadyStateClosed = 3 // eslint-disable-line
 
+const logoutDocTtl = parseInt(process.env.LOGOUT_DOC_TTL || '10000')
+const nodeEnv = process.env.NODE_ENV
+
 // disable gc when using snapshots!
 const gcEnabled = process.env.GC !== 'false' && process.env.GC !== '0'
 const persistenceDir = process.env.YPERSISTENCE
@@ -75,6 +78,8 @@ exports.docs = docs
 const messageSync = 0
 const messageAwareness = 1
 // const messageAuth = 2
+
+const docsAdditional = new Map()
 
 /**
  * @param {Uint8Array} update
@@ -263,6 +268,15 @@ const closeConn = (doc, conn) => {
     const controlledIds = doc.conns.get(conn)
     doc.conns.delete(conn)
     awarenessProtocol.removeAwarenessStates(doc.awareness, Array.from(controlledIds), null)
+    if (doc.conns.size === 0) {
+      debug(`No more connections : document "${doc.name}" will be destroy`)
+      const cancel = setTimeout(() => {
+        debug(`"${doc.name}" has been destroyed`)
+        doc.destroy()
+        docs.delete(doc.name)
+      }, logoutDocTtl)
+      docsAdditional.set(doc.name,  { lastLogout: Date.now(), cancel })
+    }
     if (doc.conns.size === 0 && persistence !== null) {
       // if persisted, we store state and destroy ydocument
       persistence.writeState(doc.name, doc).then(() => {
@@ -308,6 +322,15 @@ exports.setupWSConnection = async (conn, req, { docName = (req.url || '').slice(
   doc.conns.set(conn, new Set())
   // listen and reply to events
   conn.on('message', /** @param {ArrayBuffer} message */ message => messageListener(conn, doc, new Uint8Array(message)))
+
+  if (isNew) {
+    debug(`Create document "${docName}"`)
+    docsAdditional.set(docName,  { lastLogout: undefined, cancel: undefined })
+  } else {
+    debug(`Document "${docName}" exists : destroy canceled`)
+    clearTimeout(docsAdditional.get(docName).cancel)
+    docsAdditional.set(docName, { lastLogout: undefined, cancel: undefined })
+  }
 
   if (isRedisEnabled && isNew) {
     const redisUpdates = await getDocUpdatesFromQueue(doc);
@@ -364,4 +387,9 @@ exports.setupWSConnection = async (conn, req, { docName = (req.url || '').slice(
       send(doc, conn, encoding.toUint8Array(encoder))
     }
   }
+}
+
+const debug = (el) => {
+  if (nodeEnv == 'development')
+    console.debug(el)
 }

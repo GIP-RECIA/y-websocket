@@ -9,6 +9,7 @@ module.exports = {
     env: {
       HOST: '0.0.0.0',
       PORT: 1234,
+      LOGOUT_DOC_TTL: 10000,
       REDIS: false,
       REDIS_HOST: '0.0.0.0',
       REDIS_PORT: 6379,
