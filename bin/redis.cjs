@@ -1,7 +1,7 @@
 const number = require('lib0/number')
-const Redis = require('ioredis');
+const Redis = require('ioredis')
 
-const isRedisEnabled = process.env.REDIS === 'true';
+const isRedisEnabled = process.env.REDIS === 'true'
 
 if (isRedisEnabled) {
   const config = {
@@ -17,26 +17,26 @@ if (isRedisEnabled) {
   }
   const ttl = process.env.REDIS_TTL || 300
 
-  console.log(`Redis has been enabled with config ${config.host}:${config.port}`);
+  console.log(`Redis has been enabled with config ${config.host}:${config.port}`)
 
-  const redis = new Redis(config);
-  module.exports = redis;
+  const redis = new Redis(config)
+  module.exports = redis
 
-  module.exports.isRedisEnabled = isRedisEnabled;
+  module.exports.isRedisEnabled = isRedisEnabled
 
-  module.exports.pub = new Redis(config);
+  module.exports.pub = new Redis(config)
 
-  module.exports.sub = new Redis(config);
+  module.exports.sub = new Redis(config)
 
-  const getDocUpdatesKey = (doc) => `doc:${doc.name}:updates`;
+  const getDocUpdatesKey = (doc) => `doc:${doc.name}:updates`
   exports.getDocUpdatesKey = getDocUpdatesKey
 
   module.exports.getDocUpdatesFromQueue = async (doc) => {
-    return redis.lrangeBuffer(getDocUpdatesKey(doc), 0, -1);
+    return redis.lrangeBuffer(getDocUpdatesKey(doc), 0, -1)
   }
 
   module.exports.pushDocUpdatesToQueue = async (doc, update) => {
-    const len = redis.llen(getDocUpdatesKey(doc));
+    const len = redis.llen(getDocUpdatesKey(doc))
     if (len > 100) {
       redis.pipeline()
         .lpopBuffer(getDocUpdatesKey(doc))
@@ -47,7 +47,7 @@ if (isRedisEnabled) {
       redis.pipeline()
         .rpushBuffer(getDocUpdatesKey(doc), Buffer.from(update))
         .expire(getDocUpdatesKey(doc), ttl)
-        .exec();
+        .exec()
     }
   }
 }

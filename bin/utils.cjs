@@ -2,7 +2,7 @@ const measured = require('./measured.cjs')
 const { connects, disconnects } = require('./prom.cjs')
 
 const { isRedisEnabled, pub, sub, getDocUpdatesFromQueue, pushDocUpdatesToQueue } = require('./redis.cjs')
-const WebSocket = require('ws');
+const WebSocket = require('ws')
 
 const Y = require('yjs')
 const syncProtocol = require('y-protocols/sync')
@@ -100,15 +100,15 @@ const propagateUpdate = (update, doc) => {
  * @param {any} _tr
  */
 const updateHandler = (update, _origin, doc, _tr) => {
-  const isOriginWSConn = _origin instanceof WebSocket && doc.conns.has(_origin);
+  const isOriginWSConn = _origin instanceof WebSocket && doc.conns.has(_origin)
   if (isRedisEnabled && isOriginWSConn) {
     Promise.all([
       pub.publishBuffer(doc.name, Buffer.from(update)),
       pushDocUpdatesToQueue(doc, update)
-    ]); // do not await
+    ]) // do not await
 
-    propagateUpdate(update, doc);
-  } else propagateUpdate(update, doc);
+    propagateUpdate(update, doc)
+  } else propagateUpdate(update, doc)
 }
 
 /**
@@ -172,13 +172,13 @@ class WSSharedDoc extends Y.Doc {
     if (isRedisEnabled) {
       sub.subscribe([this.name, this.awarenessChannel]).then(() => {
         sub.on('messageBuffer', (channel, update) => {
-          const channelId = channel.toString();
+          const channelId = channel.toString()
           // update is a Buffer, Buffer is a subclass of Uint8Array, update can be applied
           // as an update directly
           if (channelId === this.name) {
-            Y.applyUpdate(this, update, sub);
+            Y.applyUpdate(this, update, sub)
           } else if (channelId === this.awarenessChannel) {
-            awarenessProtocol.applyAwarenessUpdate(this.awareness, update, sub);
+            awarenessProtocol.applyAwarenessUpdate(this.awareness, update, sub)
           }
         })
       })
@@ -195,8 +195,8 @@ class WSSharedDoc extends Y.Doc {
   }
 
   destroy() {
-    super.destroy();
-    if (isRedisEnabled) sub.unsubscribe([this.name, this.awarenessChannel]);
+    super.destroy()
+    if (isRedisEnabled) sub.unsubscribe([this.name, this.awarenessChannel])
   }
 }
 
@@ -244,8 +244,8 @@ const messageListener = (conn, doc, message) => {
         }
         break
       case messageAwareness: {
-        const update = decoding.readVarUint8Array(decoder);
-        if (isRedisEnabled) pub.publishBuffer(doc.awarenessChannel, Buffer.from(update));
+        const update = decoding.readVarUint8Array(decoder)
+        if (isRedisEnabled) pub.publishBuffer(doc.awarenessChannel, Buffer.from(update))
         awarenessProtocol.applyAwarenessUpdate(doc.awareness, update, conn)
         break
       }
@@ -275,7 +275,7 @@ const closeConn = (doc, conn) => {
         doc.destroy()
         docs.delete(doc.name)
       }, logoutDocTtl)
-      docsAdditional.set(doc.name,  { lastLogout: Date.now(), cancel })
+      docsAdditional.set(doc.name, { lastLogout: Date.now(), cancel })
     }
     if (doc.conns.size === 0 && persistence !== null) {
       // if persisted, we store state and destroy ydocument
@@ -312,7 +312,7 @@ const pingTimeout = 30000
  * @param {any} opts
  */
 exports.setupWSConnection = async (conn, req, { docName = (req.url || '').slice(1).split('?')[0], gc = true } = {}) => {
-  measured.meter('connects').mark();
+  measured.meter('connects').mark()
   connects.inc()
 
   conn.binaryType = 'arraybuffer'
@@ -325,23 +325,22 @@ exports.setupWSConnection = async (conn, req, { docName = (req.url || '').slice(
 
   if (isNew) {
     debug(`Create document "${docName}"`)
-    docsAdditional.set(docName,  { lastLogout: undefined, cancel: undefined })
   } else {
     debug(`Document "${docName}" exists : destroy canceled`)
     clearTimeout(docsAdditional.get(docName).cancel)
-    docsAdditional.set(docName, { lastLogout: undefined, cancel: undefined })
   }
+  docsAdditional.set(docName, { lastLogout: undefined, cancel: undefined })
 
   if (isRedisEnabled && isNew) {
-    const redisUpdates = await getDocUpdatesFromQueue(doc);
-    const redisYDoc = new Y.Doc();
+    const redisUpdates = await getDocUpdatesFromQueue(doc)
+    const redisYDoc = new Y.Doc()
     redisYDoc.transact(() => {
       for (const u of redisUpdates) {
-        Y.applyUpdate(redisYDoc, u);
+        Y.applyUpdate(redisYDoc, u)
       }
-    });
+    })
 
-    Y.applyUpdate(doc, Y.encodeStateAsUpdate(redisYDoc));
+    Y.applyUpdate(doc, Y.encodeStateAsUpdate(redisYDoc))
   }
 
   // Check if connection is still alive
@@ -363,7 +362,7 @@ exports.setupWSConnection = async (conn, req, { docName = (req.url || '').slice(
     }
   }, pingTimeout)
   conn.on('close', () => {
-    measured.meter('disconnects').mark();
+    measured.meter('disconnects').mark()
     disconnects.inc()
     closeConn(doc, conn)
     clearInterval(pingInterval)
