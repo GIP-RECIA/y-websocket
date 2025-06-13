@@ -174,7 +174,7 @@ class WSSharedDoc extends Y.Doc {
           const channelId = channel.toString()
           // update is a Buffer, Buffer is a subclass of Uint8Array, update can be applied
           // as an update directly
-          if (channelId === this.name) {
+          if (channelId === getDocChannel(this.name)) {
             Y.applyUpdate(this, update, sub)
           } else if (channelId === getAwarenessChannel(this.name)) {
             awarenessProtocol.applyAwarenessUpdate(this.awareness, update, sub)
