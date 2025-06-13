@@ -6,16 +6,13 @@ const isRedisEnabled = process.env.REDIS === 'true'
 if (isRedisEnabled) {
   const config = {
     host: process.env.REDIS_HOST ?? 'localhost',
-    port: number.parseInt(process.env.REDIS_PORT || '6379'),
-    keyPrefix: process.env.REDIS_PREFIX,
-    path: process.env.REDIS_PATH,
-    ...((() => {
-      const password = process.env.REDIS_PASSWORD
-
-      return password && password.length > 0 ? { password } : {}
-    })())
+    port: number.parseInt(process.env.REDIS_PORT ?? '6379'),
+    username: process.env.REDIS_USERNAME ?? 'default',
+    password: process.env.REDIS_PASSWORD ?? null,
+    db: number.parseInt(process.env.REDIS_DB ?? '0'),
+    keyPrefix: process.env.REDIS_PREFIX ?? 'YWS_'
   }
-  const ttl = process.env.REDIS_TTL || 300
+  const ttl = process.env.REDIS_TTL ?? 300
 
   console.log(`Redis has been enabled with config ${config.host}:${config.port}`)
 
