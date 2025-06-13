@@ -1,7 +1,7 @@
 const measured = require('./measured.cjs')
 const { connects, disconnects } = require('./prom.cjs')
 
-const { isRedisEnabled, pub, sub, getDocUpdatesFromQueue, pushDocUpdatesToQueue } = require('./redis.cjs')
+const { isRedisEnabled, pub, sub, getDocUpdatesFromQueue, pushDocUpdatesToQueue, getDocChannel, getAwarenessChannel } = require('./redis.cjs')
 const WebSocket = require('ws')
 
 const Y = require('yjs')
@@ -103,7 +103,7 @@ const updateHandler = (update, _origin, doc, _tr) => {
   const isOriginWSConn = _origin instanceof WebSocket && doc.conns.has(_origin)
   if (isRedisEnabled && isOriginWSConn) {
     Promise.all([
-      pub.publishBuffer(doc.name, Buffer.from(update)),
+      pub.publishBuffer(getDocChannel(doc.name), Buffer.from(update)),
       pushDocUpdatesToQueue(doc, update)
     ]) // do not await
 
@@ -133,7 +133,6 @@ class WSSharedDoc extends Y.Doc {
   constructor(name) {
     super({ gc: gcEnabled })
     this.name = name
-    this.awarenessChannel = `${name}-awareness`
     /**
      * Maps from conn to set of controlled user ids. Delete all user ids from awareness when this conn is closed
      * @type {Map<Object, Set<number>>}
@@ -170,14 +169,14 @@ class WSSharedDoc extends Y.Doc {
     this.on('update', /** @type {any} */(updateHandler))
 
     if (isRedisEnabled) {
-      sub.subscribe([this.name, this.awarenessChannel]).then(() => {
+      sub.subscribe([getDocChannel(this.name), getAwarenessChannel(this.name)]).then(() => {
         sub.on('messageBuffer', (channel, update) => {
           const channelId = channel.toString()
           // update is a Buffer, Buffer is a subclass of Uint8Array, update can be applied
           // as an update directly
           if (channelId === this.name) {
             Y.applyUpdate(this, update, sub)
-          } else if (channelId === this.awarenessChannel) {
+          } else if (channelId === getAwarenessChannel(this.name)) {
             awarenessProtocol.applyAwarenessUpdate(this.awareness, update, sub)
           }
         })
@@ -196,7 +195,7 @@ class WSSharedDoc extends Y.Doc {
 
   destroy() {
     super.destroy()
-    if (isRedisEnabled) sub.unsubscribe([this.name, this.awarenessChannel])
+    if (isRedisEnabled) sub.unsubscribe([getDocChannel(this.name), getAwarenessChannel(this.name)])
   }
 }
 
@@ -245,7 +244,7 @@ const messageListener = (conn, doc, message) => {
         break
       case messageAwareness: {
         const update = decoding.readVarUint8Array(decoder)
-        if (isRedisEnabled) pub.publishBuffer(doc.awarenessChannel, Buffer.from(update))
+        if (isRedisEnabled) pub.publishBuffer(getAwarenessChannel(doc.name), Buffer.from(update))
         awarenessProtocol.applyAwarenessUpdate(doc.awareness, update, conn)
         break
       }

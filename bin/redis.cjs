@@ -28,6 +28,10 @@ if (isRedisEnabled) {
 
   module.exports.sub = new Redis(config)
 
+  module.exports.getAwarenessChannel = (doc) => `${config.keyPrefix}${doc.name}-awareness`
+
+  module.exports.getDocChannel = (doc) => `${config.keyPrefix}${doc.name}`
+
   const getDocUpdatesKey = (doc) => `doc:${doc.name}:updates`
   exports.getDocUpdatesKey = getDocUpdatesKey
 
