@@ -4,7 +4,7 @@
     "start": "node ./bin/server.cjs"
   },
   "dependencies": {
-    "ioredis": "^5.8.0",
+    "ioredis": "^5.8.2",
     "lib0": "^0.2.114",
     "lodash.debounce": "^4.0.8",
     "measured-core": "^2.0.0",
