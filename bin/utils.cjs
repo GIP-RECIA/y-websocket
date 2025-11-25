@@ -103,7 +103,7 @@ const updateHandler = (update, _origin, doc, _tr) => {
   const isOriginWSConn = _origin instanceof WebSocket && doc.conns.has(_origin)
   if (isRedisEnabled && isOriginWSConn) {
     Promise.all([
-      pub.publishBuffer(getDocChannel(doc.name), Buffer.from(update)),
+      pub.publishBuffer(getDocChannel(doc), Buffer.from(update)),
       pushDocUpdatesToQueue(doc, update)
     ]) // do not await
 
@@ -169,14 +169,14 @@ class WSSharedDoc extends Y.Doc {
     this.on('update', /** @type {any} */(updateHandler))
 
     if (isRedisEnabled) {
-      sub.subscribe([getDocChannel(this.name), getAwarenessChannel(this.name)]).then(() => {
+      sub.subscribe([getDocChannel(this), getAwarenessChannel(this)]).then(() => {
         sub.on('messageBuffer', (channel, update) => {
           const channelId = channel.toString()
           // update is a Buffer, Buffer is a subclass of Uint8Array, update can be applied
           // as an update directly
-          if (channelId === getDocChannel(this.name)) {
+          if (channelId === getDocChannel(this)) {
             Y.applyUpdate(this, update, sub)
-          } else if (channelId === getAwarenessChannel(this.name)) {
+          } else if (channelId === getAwarenessChannel(this)) {
             awarenessProtocol.applyAwarenessUpdate(this.awareness, update, sub)
           }
         })
@@ -195,7 +195,7 @@ class WSSharedDoc extends Y.Doc {
 
   destroy() {
     super.destroy()
-    if (isRedisEnabled) sub.unsubscribe([getDocChannel(this.name), getAwarenessChannel(this.name)])
+    if (isRedisEnabled) sub.unsubscribe([getDocChannel(this), getAwarenessChannel(this)])
   }
 }
 
@@ -244,7 +244,7 @@ const messageListener = (conn, doc, message) => {
         break
       case messageAwareness: {
         const update = decoding.readVarUint8Array(decoder)
-        if (isRedisEnabled) pub.publishBuffer(getAwarenessChannel(doc.name), Buffer.from(update))
+        if (isRedisEnabled) pub.publishBuffer(getAwarenessChannel(doc), Buffer.from(update))
         awarenessProtocol.applyAwarenessUpdate(doc.awareness, update, conn)
         break
       }
